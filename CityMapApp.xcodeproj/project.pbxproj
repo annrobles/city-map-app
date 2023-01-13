@@ -16,6 +16,7 @@
 		706209BD297098A000229042 /* CityMapAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706209BC297098A000229042 /* CityMapAppTests.swift */; };
 		706209C7297098A000229042 /* CityMapAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706209C6297098A000229042 /* CityMapAppUITests.swift */; };
 		706209C9297098A000229042 /* CityMapAppUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706209C8297098A000229042 /* CityMapAppUITestsLaunchTests.swift */; };
+		706209D82971BC5C00229042 /* City.swift in Sources */ = {isa = PBXBuildFile; fileRef = 706209D72971BC5C00229042 /* City.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		706209C2297098A000229042 /* CityMapAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CityMapAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		706209C6297098A000229042 /* CityMapAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityMapAppUITests.swift; sourceTree = "<group>"; };
 		706209C8297098A000229042 /* CityMapAppUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityMapAppUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		706209D72971BC5C00229042 /* City.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = City.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +108,7 @@
 				706209AE297098A000229042 /* Assets.xcassets */,
 				706209B0297098A000229042 /* LaunchScreen.storyboard */,
 				706209B3297098A000229042 /* Info.plist */,
+				706209D72971BC5C00229042 /* City.swift */,
 			);
 			path = CityMapApp;
 			sourceTree = "<group>";
@@ -260,6 +263,7 @@
 			files = (
 				706209AA2970989D00229042 /* ViewController.swift in Sources */,
 				706209A62970989D00229042 /* AppDelegate.swift in Sources */,
+				706209D82971BC5C00229042 /* City.swift in Sources */,
 				706209A82970989D00229042 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
