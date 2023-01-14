@@ -11,7 +11,8 @@ import MapKit
 class ViewController: UIViewController, CLLocationManagerDelegate {
 
     @IBOutlet weak var map: MKMapView!
-
+    @IBOutlet weak var routeButton: UIButton!
+    
     var locationManager = CLLocationManager()
     var destinationCount = 0
     var destination: CLLocationCoordinate2D!
@@ -19,7 +20,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        routeButton.isHidden = true
+        
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.requestWhenInUseAuthorization()
@@ -42,7 +45,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         doubleTap.numberOfTapsRequired = 2
         map.addGestureRecognizer(doubleTap)
     }
-
+    
     @objc func dropPin(sender: UITapGestureRecognizer) {
         
         let touchPoint = sender.location(in: map)
@@ -50,6 +53,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         let annotation = MKPointAnnotation()
         
         destinationCount += 1
+        
+        if destinationCount > 1 {
+            routeButton.isHidden = false
+        }
         
         if destinationCount <= 3 {
             annotation.title = "Destination \(destinationCount)"
@@ -65,9 +72,6 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             addPolyline()
             addPolygon()
         }
-
-        destination = coordinate
-
     }
     
     func addPolyline() {
@@ -82,54 +86,40 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         map.addOverlay(polygon)
     }
     
-//   func drawRoute() {
-//        map.removeOverlays(map.overlays)
-//
-//        let sourcePlaceMark = MKPlacemark(coordinate: locationManager.location!.coordinate)
-//        let destinationPlaceMark = MKPlacemark(coordinate: destination)
-//
-//        // request a direction
-//        let directionRequest = MKDirections.Request()
-//
-//        // assign the source and destination properties of the request
-//        directionRequest.source = MKMapItem(placemark: sourcePlaceMark)
-//        directionRequest.destination = MKMapItem(placemark: destinationPlaceMark)
-//
-//        // transportation type
-//        directionRequest.transportType = .automobile
-//
-//        // calculate the direction
-//        let directions = MKDirections(request: directionRequest)
-//        directions.calculate { (response, error) in
-//            guard let directionResponse = response else {return}
-//            // create the route
-//            let route = directionResponse.routes[0]
-//            // drawing a polyline
-//            self.map.addOverlay(route.polyline, level: .aboveRoads)
-//
-//            // define the bounding map rect
-//            let rect = route.polyline.boundingMapRect
-//            self.map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100), animated: true)
-//
-////            self.map.setRegion(MKCoordinateRegion(rect), animated: true)
-//        }
-//    }
-    
-    
-//    func calculateDistance(mobileLocationX:Double,
-//                           mobileLocationY:Double,
-//                           DestinationX:Double,
-//                           DestinationY:Double) -> Double
-//    {
-//
-//        let coordinate₀ = CLLocation(latitude: mobileLocationX, longitude: mobileLocationY)
-//        let coordinate₁ = CLLocation(latitude: DestinationX, longitude:  DestinationY)
-//
-//        let distanceInMeters = coordinate₀.distance(from: coordinate₁)
-//
-//        return distanceInMeters
-//    }
+    @IBAction func drawRoute(_ sender: Any) {
+        map.removeOverlays(map.overlays)
+        let directionRequest = MKDirections.Request()
+        var toIndex: Int
+        directionRequest.transportType = .automobile
+        
+        for index in 0...3 {
+            if index == 3 {
+                toIndex = 0
+            }
+            else {
+                toIndex = index + 1
+            }
 
+            let sourcePlaceMark = MKPlacemark(coordinate: cities[index].coordinate)
+            let destinationPlaceMark = MKPlacemark(coordinate: cities[toIndex].coordinate)
+            
+            directionRequest.source = MKMapItem(placemark: sourcePlaceMark)
+            directionRequest.destination = MKMapItem(placemark: destinationPlaceMark)
+
+            let directions = MKDirections(request: directionRequest)
+            directions.calculate { (response, error) in
+                guard let directionResponse = response else {return}
+
+                let route = directionResponse.routes[0]
+
+                self.map.addOverlay(route.polyline, level: .aboveRoads)
+
+                let rect = route.polyline.boundingMapRect
+                self.map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100), animated: true)
+
+            }
+        }
+    }
 }
 
 extension ViewController: MKMapViewDelegate {
