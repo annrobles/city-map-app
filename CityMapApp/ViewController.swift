@@ -7,16 +7,19 @@
 
 import UIKit
 import MapKit
+import CoreLocation
 
 class ViewController: UIViewController, CLLocationManagerDelegate {
 
     @IBOutlet weak var map: MKMapView!
     @IBOutlet weak var routeButton: UIButton!
     
+    var routeLine: MKPolyline?
     var locationManager = CLLocationManager()
     var destinationCount = 0
     var destination: CLLocationCoordinate2D!
     var cities = [City]()
+    var touchPoints = [CGPoint]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,7 +54,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         let touchPoint = sender.location(in: map)
         let coordinate = map.convert(touchPoint, toCoordinateFrom: map)
         let annotation = MKPointAnnotation()
-        
+
+        touchPoints.append(touchPoint)
         destinationCount += 1
         
         if destinationCount > 1 {
@@ -71,6 +75,34 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             cities.append(cities[0])
             addPolyline()
             addPolygon()
+            calculateDistance(cities: cities)
+        }
+    }
+    
+    func calculateDistance(cities: [City]) {
+        var nextIndex: Int
+        
+        for index in 0...2 {
+            if index == 2 {
+                nextIndex = 0
+            }
+            else {
+                nextIndex = index + 1
+            }
+            let startPoint = CLLocation(latitude: cities[index].coordinate.latitude, longitude: cities[index].coordinate.longitude)
+            let endPoint = CLLocation(latitude: cities[nextIndex].coordinate.latitude, longitude: cities[nextIndex].coordinate.longitude)
+            
+            let distance = startPoint.distance(from: endPoint) / 1609.344
+            
+            let coordinate1 = map.convert(touchPoints[index], toCoordinateFrom: map)
+            let coordinate2 = map.convert(touchPoints[nextIndex], toCoordinateFrom: map)
+            let midPointLat = (coordinate1.latitude + coordinate2.latitude) / 2
+            let midPointLong = (coordinate1.longitude + coordinate2.longitude) / 2
+            let annotation = MKPointAnnotation()
+            
+            annotation.title = String(format: "%.01fmi", distance)
+            annotation.coordinate = CLLocationCoordinate2DMake(midPointLat, midPointLong)
+            map.addAnnotation(annotation)
         }
     }
     
@@ -111,12 +143,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 guard let directionResponse = response else {return}
 
                 let route = directionResponse.routes[0]
-
-                self.map.addOverlay(route.polyline, level: .aboveRoads)
+                
+                self.routeLine = route.polyline
+                self.map.addOverlay(self.routeLine!, level: .aboveRoads)
 
                 let rect = route.polyline.boundingMapRect
                 self.map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100), animated: true)
-
             }
         }
     }
@@ -128,6 +160,11 @@ extension ViewController: MKMapViewDelegate {
             let rendrer = MKPolylineRenderer(overlay: overlay)
             rendrer.strokeColor = UIColor.systemGreen
             rendrer.lineWidth = 3
+            
+            if routeLine != nil {
+                rendrer.strokeColor = UIColor.systemBlue
+                rendrer.lineWidth = 5
+            }
             return rendrer
         } else if overlay is MKPolygon {
             let rendrer = MKPolygonRenderer(overlay: overlay)
@@ -139,3 +176,4 @@ extension ViewController: MKMapViewDelegate {
         return MKOverlayRenderer()
     }
 }
+
