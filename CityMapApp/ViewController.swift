@@ -35,10 +35,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         map.showsUserLocation = false
         map.delegate = self
         
-        guard let currentLocation = locationManager.location else { return }
-        let coordinateRegion = MKCoordinateRegion(center: currentLocation.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-        
-        map.setRegion(coordinateRegion, animated: true)
+//        guard let currentLocation = locationManager.location else { return }
+//        let coordinateRegion = MKCoordinateRegion(center: currentLocation.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
+//
+//        map.setRegion(coordinateRegion, animated: true)
         
         addDoubleTap()
     }
@@ -77,6 +77,28 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             addPolygon()
             calculateDistance(cities: cities)
         }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        
+        let userLocation = locations[0]
+        
+        let latitude = userLocation.coordinate.latitude
+        let longitude = userLocation.coordinate.longitude
+        print(userLocation)
+        displayLocation(latitude: latitude, longitude: longitude)
+    }
+    
+    func displayLocation(latitude: CLLocationDegrees,
+                         longitude: CLLocationDegrees) {
+        let latDelta: CLLocationDegrees = 0.05
+        let lngDelta: CLLocationDegrees =  0.05
+        
+        let span = MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lngDelta)
+        let location = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let region = MKCoordinateRegion(center: location, span: span)
+        
+        map.setRegion(region, animated: true)
     }
     
     func calculateDistance(cities: [City]) {
