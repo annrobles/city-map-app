@@ -19,7 +19,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     var destinationCount = 0
     var destination: CLLocationCoordinate2D!
     var cities = [City]()
-    var touchPoints = [CGPoint]()
+    var distanceLabels: [UILabel] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,48 +35,67 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         map.showsUserLocation = false
         map.delegate = self
         
-//        guard let currentLocation = locationManager.location else { return }
-//        let coordinateRegion = MKCoordinateRegion(center: currentLocation.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-//
-//        map.setRegion(coordinateRegion, animated: true)
-        
         addDoubleTap()
     }
     
     func addDoubleTap() {
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(dropPin))
-        doubleTap.numberOfTapsRequired = 2
+        doubleTap.numberOfTapsRequired = 1
         map.addGestureRecognizer(doubleTap)
     }
     
     @objc func dropPin(sender: UITapGestureRecognizer) {
         
-        let touchPoint = sender.location(in: map)
-        let coordinate = map.convert(touchPoint, toCoordinateFrom: map)
+        let touchpoint = sender.location(in: map)
+        let coordinate = map.convert(touchpoint, toCoordinateFrom: map)
         let annotation = MKPointAnnotation()
-
-        touchPoints.append(touchPoint)
-        destinationCount += 1
+        
+        destinationCount = map.annotations.count
         
         if destinationCount > 1 {
             routeButton.isHidden = false
         }
         
-        if destinationCount <= 3 {
-            annotation.title = "Destination \(destinationCount)"
-            annotation.coordinate = coordinate
-            map.addAnnotation(annotation)
+        CLGeocoder().reverseGeocodeLocation(CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude), completionHandler: {(placemarks, error) in
             
-            let city = City(title: "Destination \(destinationCount)", subtitle: "Destination \(destinationCount)", coordinate: CLLocationCoordinate2DMake(coordinate.latitude, coordinate.longitude))
-           cities.append(city)
-        }
-        
-        if (destinationCount == 3) {
-            cities.append(cities[0])
-            addPolyline()
-            addPolygon()
-            calculateDistance(cities: cities)
-        }
+            if error != nil {
+                print(error!)
+            } else {
+                DispatchQueue.main.async {
+                    if let placeMark = placemarks?[0] {
+                        
+                        if placeMark.locality != nil {
+                            let place = City(title: placeMark.locality!, subtitle: "", coordinate: coordinate)
+                            
+                            // Add up to 3 Annotations on the map
+                            if self.destinationCount <= 2 {
+                                self.cities.append(place)
+                                self.map.addAnnotation(place)
+                            }
+                            else {
+                                for (index, myAnnotation) in self.map.annotations.enumerated() {
+                                    
+                                    if myAnnotation.title == placeMark.locality {
+                                        print(index)
+                                        self.removeOverlays()
+                                        self.map.removeAnnotation(myAnnotation)
+                                        self.cities.remove(at: index)
+                                        self.cities.append(place)
+                                        self.map.addAnnotation(place)
+                                    }
+                                }
+                                self.destinationCount = self.map.annotations.count - 1
+                            }
+
+                            if self.destinationCount == 2 {
+                                self.addPolyline()
+                                self.addPolygon()
+                            }
+                        }
+                    }
+                }
+            }
+        })
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -85,14 +104,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         let latitude = userLocation.coordinate.latitude
         let longitude = userLocation.coordinate.longitude
-        print(userLocation)
         displayLocation(latitude: latitude, longitude: longitude)
     }
     
     func displayLocation(latitude: CLLocationDegrees,
-                         longitude: CLLocationDegrees) {
-        let latDelta: CLLocationDegrees = 0.05
-        let lngDelta: CLLocationDegrees =  0.05
+                         longitude: CLLocationDegrees)
+    {
+        let latDelta: CLLocationDegrees = 0.7
+        let lngDelta: CLLocationDegrees =  0.7
         
         let span = MKCoordinateSpan(latitudeDelta: latDelta, longitudeDelta: lngDelta)
         let location = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -101,37 +120,49 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         map.setRegion(region, animated: true)
     }
     
-    func calculateDistance(cities: [City]) {
-        var nextIndex: Int
+    private func showDistanceBetweenTwoPoint() {
+        var nextIndex = 0
         
-        for index in 0...2 {
+        for index in 0...2{
             if index == 2 {
                 nextIndex = 0
-            }
-            else {
+            } else {
                 nextIndex = index + 1
             }
-            let startPoint = CLLocation(latitude: cities[index].coordinate.latitude, longitude: cities[index].coordinate.longitude)
-            let endPoint = CLLocation(latitude: cities[nextIndex].coordinate.latitude, longitude: cities[nextIndex].coordinate.longitude)
+
+            let distance: Double = getDistance(from: cities[index].coordinate, to:  cities[nextIndex].coordinate)
             
-            let distance = startPoint.distance(from: endPoint) / 1609.344
+            let pointA: CGPoint = map.convert(cities[index].coordinate, toPointTo: map)
+            let pointB: CGPoint = map.convert(cities[nextIndex].coordinate, toPointTo: map)
+        
+            let labelDistance = UILabel(frame: CGRect(x: 0, y: 0, width: 50, height: 18))
+
+            labelDistance.textAlignment = NSTextAlignment.center
+            labelDistance.text = "\(String.init(format: "%2.f",  round(distance * 0.001)))km"
+            labelDistance.textColor = .black
+            labelDistance.font = UIFont(name: "Thonburi-Bold", size: 10.0)
+            labelDistance.center = CGPoint(x: (pointA.x + pointB.x) / 2, y: (pointA.y + pointB.y) / 2)
             
-            let coordinate1 = map.convert(touchPoints[index], toCoordinateFrom: map)
-            let coordinate2 = map.convert(touchPoints[nextIndex], toCoordinateFrom: map)
-            let midPointLat = (coordinate1.latitude + coordinate2.latitude) / 2
-            let midPointLong = (coordinate1.longitude + coordinate2.longitude) / 2
-            let annotation = MKPointAnnotation()
-            
-            annotation.title = String(format: "%.01fmi", distance)
-            annotation.coordinate = CLLocationCoordinate2DMake(midPointLat, midPointLong)
-            map.addAnnotation(annotation)
+            distanceLabels.append(labelDistance)
         }
+        for label in distanceLabels {
+            map.addSubview(label)
+        }
+    }
+    
+    func getDistance(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) -> CLLocationDistance {
+        let from = CLLocation(latitude: from.latitude, longitude: from.longitude)
+        let to = CLLocation(latitude: to.latitude, longitude: to.longitude)
+        
+        return from.distance(from: to)
     }
     
     func addPolyline() {
         let coordinates = cities.map {$0.coordinate}
         let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-        map.addOverlay(polyline)
+        map.addOverlay(polyline, level: .aboveRoads)
+        
+        showDistanceBetweenTwoPoint()
     }
     
     func addPolygon() {
@@ -142,36 +173,58 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     
     @IBAction func drawRoute(_ sender: Any) {
         map.removeOverlays(map.overlays)
-        let directionRequest = MKDirections.Request()
-        var toIndex: Int
-        directionRequest.transportType = .automobile
+        removeDistanceLabel()
         
-        for index in 0...3 {
-            if index == 3 {
-                toIndex = 0
+        var nextIndex = 0
+        for index in 0...2 {
+            if index == 2 {
+                nextIndex = 0
+            } else {
+                nextIndex = index + 1
             }
-            else {
-                toIndex = index + 1
-            }
-
+            
             let sourcePlaceMark = MKPlacemark(coordinate: cities[index].coordinate)
-            let destinationPlaceMark = MKPlacemark(coordinate: cities[toIndex].coordinate)
+            let destinationPlaceMark = MKPlacemark(coordinate: cities[nextIndex].coordinate)
+            let directionRequest = MKDirections.Request()
             
             directionRequest.source = MKMapItem(placemark: sourcePlaceMark)
             directionRequest.destination = MKMapItem(placemark: destinationPlaceMark)
-
+            directionRequest.transportType = .automobile
             let directions = MKDirections(request: directionRequest)
             directions.calculate { (response, error) in
                 guard let directionResponse = response else {return}
-
+                
                 let route = directionResponse.routes[0]
                 
                 self.routeLine = route.polyline
                 self.map.addOverlay(self.routeLine!, level: .aboveRoads)
-
+                
                 let rect = route.polyline.boundingMapRect
                 self.map.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 100, left: 100, bottom: 100, right: 100), animated: true)
             }
+        }
+    }
+    
+    private func removeDistanceLabel() {
+        for label in distanceLabels {
+            label.removeFromSuperview()
+        }
+        
+        distanceLabels = []
+    }
+    
+    func removePin() {
+        for annotation in map.annotations {
+            map.removeAnnotation(annotation)
+        }
+    }
+    
+    func removeOverlays() {
+        routeButton.isHidden = true
+        removeDistanceLabel()
+        
+        for polygon in map.overlays {
+            map.removeOverlay(polygon)
         }
     }
 }
